@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "quiet-py-wasm"
+version = "0.1.0"
+description = "Python interface to WASM build of Quiet. Work in progress: Current not suitable for use."
+authors = ["Martin Moxon <moxon6@googlemail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
