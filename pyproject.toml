@@ -3,6 +3,7 @@ name = "quiet-py-wasm"
 version = "0.1.0"
 description = "Python interface to WASM build of Quiet. Work in progress: Current not suitable for use."
 authors = ["Martin Moxon <moxon6@googlemail.com>"]
+include = ["quiet_py_wasm/quiet-profiles.json", "quiet_py_wasm/quiet.wasm"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
