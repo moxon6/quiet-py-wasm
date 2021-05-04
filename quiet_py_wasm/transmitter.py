@@ -4,15 +4,13 @@ import pyaudio
 
 FORMAT = pyaudio.paFloat32
 CHANNELS = 1
-RATE = 48000
+SAMPLE_RATE = 48000.0
 
-# open stream (2)
 p = pyaudio.PyAudio()
 stream = p.open(format=FORMAT,
                 channels=CHANNELS,
-                rate=RATE,
+                rate=SAMPLE_RATE,
                 output=True)
-
 
 class Transmitter:
     def __init__(self, instance):
@@ -30,9 +28,8 @@ class Transmitter:
 
         opt = self.instance.exports.quiet_encoder_profile_str(cProfiles, cProfile)
 
-        sample_rate = 48000.0
 
-        self.encoder = self.instance.exports.quiet_encoder_create(opt, sample_rate)
+        self.encoder = self.instance.exports.quiet_encoder_create(opt, SAMPLE_RATE)
 
         self.instance.exports.free(opt)
 
@@ -61,15 +58,9 @@ class Transmitter:
             written = self.instance.exports.quiet_encoder_emit(self.encoder, self.samples["pointer"], sample_buffer_size)
 
             byte_buffer = bytearray(buffer)
-            # for i in range(written, sample_buffer_size):
-            #   byte_buffer[ self.samples['pointer'] + i ] = 0
 
             raw_bytes = byte_buffer[self.samples['pointer']: self.samples['end']]
-            play_bytes(bytes(raw_bytes))
-
-            # import pdb; pdb.set_trace()
-
-            
+            play_bytes(bytes(raw_bytes))           
 
         self.instance.exports.stackRestore(stack)
         return self
@@ -81,10 +72,6 @@ class Transmitter:
             self.destroyed = True
         return self
 
-
-
-
 def play_bytes(raw_bytes):
     data = raw_bytes
     stream.write(data)
-
