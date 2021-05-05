@@ -1,5 +1,4 @@
 from wasmer import Store, Module, Instance
-import struct
 
 sample_buffer_size = 16384
 
@@ -21,10 +20,6 @@ def allocate_array_on_stack(instance, arr):
 
 def allocate_string_on_stack(instance, string):
     return allocate_array_on_stack(instance, encode(string + "\0"))
-
-def intBitsToFloat(b):
-    s = struct.pack('>l', b)
-    return struct.unpack('>f', s)[0]
 
 def malloc_array(bufferSize, instance):
     pointer = instance.exports.malloc(4 * bufferSize)

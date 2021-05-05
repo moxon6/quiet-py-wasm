@@ -1,10 +1,10 @@
-from utils import *
+from .utils import *
 import json 
 import pyaudio
 
 FORMAT = pyaudio.paFloat32
 CHANNELS = 1
-SAMPLE_RATE = 48000.0
+SAMPLE_RATE = 48000
 
 p = pyaudio.PyAudio()
 stream = p.open(format=FORMAT,
@@ -28,8 +28,7 @@ class Transmitter:
 
         opt = self.instance.exports.quiet_encoder_profile_str(cProfiles, cProfile)
 
-
-        self.encoder = self.instance.exports.quiet_encoder_create(opt, SAMPLE_RATE)
+        self.encoder = self.instance.exports.quiet_encoder_create(opt, float(SAMPLE_RATE))
 
         self.instance.exports.free(opt)
 

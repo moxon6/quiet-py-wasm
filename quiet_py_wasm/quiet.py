@@ -3,8 +3,8 @@ from wasmer import engine, Store, Module, Instance, ImportObject, Function, Func
 from wasmer_compiler_cranelift import Compiler
 import json
 import time
-from transmitter import Transmitter
-from utils import encode
+from .transmitter import Transmitter
+from .utils import encode
 
 quiet_dir = os.path.dirname(__file__)
 
