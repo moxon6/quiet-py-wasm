@@ -22,13 +22,10 @@ class Quiet:
 
         store = Store(engine.JIT(Compiler))
 
-        def host_function_implementation() -> int:
-            return 0
-
         import_object.register(
             "env",
             {
-            "__sys_getpid": Function(store, host_function_implementation),
+            "__sys_getpid": Function(store, lambda: 42, FunctionType([], [Type.I32] )),
             }
         )
 
