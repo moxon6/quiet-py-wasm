@@ -4,6 +4,7 @@ from wasmer_compiler_cranelift import Compiler
 import json
 import time
 from .transmitter import Transmitter
+from .receiver import Receiver
 from .utils import encode
 
 quiet_dir = os.path.dirname(__file__)
@@ -52,3 +53,8 @@ class Quiet:
             .select_profile(self.profiles[profile], clampFrame) \
             .transmit(encode(payload)) \
             .destroy()
+    
+    def receive(self, profile):
+        Receiver(self.instance) \
+            .select_profile(self.profiles[profile]) \
+            .receive()
