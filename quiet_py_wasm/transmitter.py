@@ -2,6 +2,12 @@ from .utils import *
 import json
 import pyaudio
 
+
+def chunks(arr, n):
+    for i in range(0, len(arr), n):
+        yield arr[i:i + n]
+
+
 FORMAT = pyaudio.paFloat32
 CHANNELS = 1
 SAMPLE_RATE = 48000
@@ -18,61 +24,65 @@ class Transmitter:
         self.destroyed = False
         self.instance = instance
 
-    def select_profile(self, profile, clampFrame):
+    def select_profile(self, profile):
         stack = self.instance.exports.stackSave()
-
-        cProfiles = allocate_string_on_stack(self.instance, json.dumps({
-            "profile": profile
-        }))
-
-        cProfile = allocate_string_on_stack(self.instance, 'profile')
+        cProfile, cProfiles = allocate_profile_on_stack(self.instance, profile)
 
         quiet_encoder_options = self.instance.exports.quiet_encoder_profile_str(
-            cProfiles, cProfile)
+            cProfiles,
+            cProfile
+        )
 
         self.encoder = self.instance.exports.quiet_encoder_create(
-            quiet_encoder_options, float(SAMPLE_RATE))
+            quiet_encoder_options,
+            float(SAMPLE_RATE)
+        )
+
+        self.frame_length = self.instance.exports.quiet_encoder_clamp_frame_len(
+            self.encoder,
+            sample_buffer_size
+        )
 
         self.instance.exports.free(quiet_encoder_options)
-
-        if clampFrame:
-            self.frame_length = self.instance.exports.quiet_encoder_clamp_frame_len(
-                self.encoder, sample_buffer_size)
-        else:
-            self.frame_length = self.instance.exports.quiet_encoder_clamp_frame_len(
-                self.encoder)
-
-        self.samples = malloc_array(sample_buffer_size, self.instance)
-
         self.instance.exports.stackRestore(stack)
         return self
 
     def transmit(self, buf):
         stack = self.instance.exports.stackSave()
 
-        payload = chunks(buf, self.frame_length)
+        audioSampleBytesPointer, getAudioSampleBytes = allocate_array_on_stack(
+            self.instance,
+            [0] * sample_buffer_size * 4
+        )
 
-        buffer = self.instance.exports.memory.buffer
+        payload = chunks(buf, self.frame_length)
 
         for frame in payload:
 
-            framePointer = allocate_array_on_stack(self.instance, frame)
+            unicodeBytesPointer, _ = allocate_array_on_stack(
+                self.instance,
+                frame
+            )
+
             self.instance.exports.quiet_encoder_send(
-                self.encoder, framePointer, len(frame))
+                self.encoder,
+                unicodeBytesPointer,
+                len(frame)
+            )
+
             self.instance.exports.quiet_encoder_emit(
-                self.encoder, self.samples["pointer"], sample_buffer_size)
+                self.encoder,
+                audioSampleBytesPointer,
+                sample_buffer_size
+            )
 
-            byte_buffer = bytearray(buffer)
-
-            raw_bytes = byte_buffer[self.samples['pointer']: self.samples['end']]
-            play_bytes(bytes(raw_bytes))
+            play_bytes(bytes(getAudioSampleBytes()))
 
         self.instance.exports.stackRestore(stack)
         return self
 
     def destroy(self):
         if (not self.destroyed):
-            self.instance.exports.free(self.samples["pointer"])
             self.instance.exports.quiet_encoder_destroy(self.encoder)
             self.destroyed = True
         return self

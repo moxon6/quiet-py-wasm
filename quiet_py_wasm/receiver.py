@@ -23,47 +23,47 @@ class Receiver:
 
     def select_profile(self, profile):
         stack = self.instance.exports.stackSave()
-
-        cProfiles = allocate_string_on_stack(self.instance, json.dumps({
-            "profile": profile
-        }))
-
-        cProfile = allocate_string_on_stack(self.instance, 'profile')
+        cProfile, cProfiles = allocate_profile_on_stack(self.instance, profile)
 
         quiet_decoder_options = self.instance.exports.quiet_decoder_profile_str(
-            cProfiles, cProfile)
-        self.decoder = self.instance.exports.quiet_decoder_create(
-            quiet_decoder_options, float(SAMPLE_RATE))
-        self.instance.exports.free(quiet_decoder_options)
+            cProfiles,
+            cProfile
+        )
 
+        self.quiet_decoder = self.instance.exports.quiet_decoder_create(
+            quiet_decoder_options,
+            float(SAMPLE_RATE)
+        )
+
+        self.instance.exports.free(quiet_decoder_options)
         self.instance.exports.stackRestore(stack)
         return self
 
     def receive(self):
+
+        unicodeBytesPointer, getUnicodeBytes = allocate_array_on_stack(
+            self.instance,
+            [0] * sample_buffer_size
+        )
+
         while True:
-            loop_stack = self.instance.exports.stackSave()
-            samples = stream.read(sample_buffer_size)
+            stack = self.instance.exports.stackSave()
 
-            sammplesPointer, _ = allocate_array_on_stack_v2(
+            audioSampleBytesPointer, _ = allocate_array_on_stack(
                 self.instance,
-                samples
-            )
-
-            outputBytesPointer, getOutputBytes = allocate_array_on_stack_v2(
-                self.instance,
-                [0] * sample_buffer_size
+                stream.read(sample_buffer_size)
             )
 
             self.instance.exports.quiet_decoder_consume(
-                self.decoder, sammplesPointer, sample_buffer_size,
+                self.quiet_decoder, audioSampleBytesPointer, sample_buffer_size,
             )
 
             read = self.instance.exports.quiet_decoder_recv(
-                self.decoder, outputBytesPointer, sample_buffer_size
+                self.quiet_decoder, unicodeBytesPointer, sample_buffer_size
             )
 
             if (read != -1):
-                output = bytes(getOutputBytes()).decode("utf-8")
+                output = bytes(getUnicodeBytes()).decode("utf-8")
                 print(output)
 
-            self.instance.exports.stackRestore(loop_stack)
+            self.instance.exports.stackRestore(stack)
