@@ -1,5 +1,4 @@
 from .utils import *
-import json
 import pyaudio
 
 
@@ -57,6 +56,7 @@ class Transmitter:
 
         payload = chunks(buf, self.frame_length)
 
+        pre_loop_stack = self.instance.exports.stackSave()
         for frame in payload:
 
             unicodeBytesPointer, _ = allocate_array_on_stack(
@@ -77,6 +77,7 @@ class Transmitter:
             )
 
             play_bytes(bytes(getAudioSampleBytes()))
+            self.instance.exports.stackRestore(pre_loop_stack)
 
         self.instance.exports.stackRestore(stack)
         return self

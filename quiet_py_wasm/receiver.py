@@ -1,5 +1,4 @@
 import pyaudio
-import json
 from .utils import *
 
 FORMAT = pyaudio.paFloat32
@@ -41,29 +40,35 @@ class Receiver:
 
     def receive(self):
 
+        stack = self.instance.exports.stackSave()
+
         unicodeBytesPointer, getUnicodeBytes = allocate_array_on_stack(
             self.instance,
             [0] * sample_buffer_size
         )
 
+        pre_loop_stack = self.instance.exports.stackSave()
         while True:
-            stack = self.instance.exports.stackSave()
+            try:
 
-            audioSampleBytesPointer, _ = allocate_array_on_stack(
-                self.instance,
-                stream.read(sample_buffer_size)
-            )
+                audioSampleBytesPointer, _ = allocate_array_on_stack(
+                    self.instance,
+                    stream.read(sample_buffer_size)
+                )
 
-            self.instance.exports.quiet_decoder_consume(
-                self.quiet_decoder, audioSampleBytesPointer, sample_buffer_size,
-            )
+                self.instance.exports.quiet_decoder_consume(
+                    self.quiet_decoder, audioSampleBytesPointer, sample_buffer_size,
+                )
 
-            read = self.instance.exports.quiet_decoder_recv(
-                self.quiet_decoder, unicodeBytesPointer, sample_buffer_size
-            )
+                read = self.instance.exports.quiet_decoder_recv(
+                    self.quiet_decoder, unicodeBytesPointer, sample_buffer_size
+                )
 
-            if (read != -1):
-                output = bytes(getUnicodeBytes()).decode("utf-8")
-                print(output)
+                if (read != -1):
+                    output = bytes(getUnicodeBytes()).decode("utf-8")
+                    print(output)
 
-            self.instance.exports.stackRestore(stack)
+                self.instance.exports.stackRestore(pre_loop_stack)
+            except KeyboardInterrupt:
+                break
+        self.instance.exports.stackRestore(stack)
