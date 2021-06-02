@@ -1,4 +1,5 @@
 import pyaudio
+from queue import Queue
 from .utils import *
 
 FORMAT = pyaudio.paFloat32
@@ -6,13 +7,6 @@ CHANNELS = 1
 SAMPLE_RATE = 48000
 
 p = pyaudio.PyAudio()
-stream = p.open(
-    format=FORMAT,
-    channels=CHANNELS,
-    rate=SAMPLE_RATE,
-    input=True,
-    frames_per_buffer=sample_buffer_size
-)
 
 
 class Receiver:
@@ -40,6 +34,21 @@ class Receiver:
 
     def receive(self):
 
+        q = Queue()
+
+        def callback(in_data, frame_count, time_info, status):
+            q.put(in_data)
+            return (None, pyaudio.paContinue)
+
+        p.open(
+            format=FORMAT,
+            channels=CHANNELS,
+            rate=SAMPLE_RATE,
+            input=True,
+            frames_per_buffer=sample_buffer_size,
+            stream_callback=callback
+        )
+
         stack = self.instance.exports.stackSave()
 
         unicodeBytesPointer, getUnicodeBytes = allocate_array_on_stack(
@@ -50,10 +59,11 @@ class Receiver:
         pre_loop_stack = self.instance.exports.stackSave()
         while True:
             try:
+                frame = q.get()
 
                 audioSampleBytesPointer, _ = allocate_array_on_stack(
                     self.instance,
-                    stream.read(sample_buffer_size)
+                    frame
                 )
 
                 self.instance.exports.quiet_decoder_consume(
@@ -65,8 +75,9 @@ class Receiver:
                 )
 
                 if (read != -1):
-                    output = bytes(getUnicodeBytes()).decode("utf-8")
-                    print(output)
+                    output = bytes(getUnicodeBytes()[:read]).decode(
+                        "utf-8", 'ignore')
+                    yield output
 
                 self.instance.exports.stackRestore(pre_loop_stack)
             except KeyboardInterrupt:
