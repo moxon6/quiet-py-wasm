@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quiet-py-wasm"
-version = "0.1.2"
+version = "0.1.3"
 description = "Python interface to WASM build of Quiet. Work in progress: Current not suitable for use."
 authors = ["Martin Moxon"]
 include = ["quiet_py_wasm/quiet-profiles.json", "quiet_py_wasm/quiet.wasm"]
